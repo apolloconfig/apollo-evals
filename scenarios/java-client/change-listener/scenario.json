@@ -1,0 +1,7 @@
+{
+  "id": "java-client-change-listener",
+  "campaigns": ["smoke", "benchmark"],
+  "track": "apollo-java-client",
+  "products": ["apollo-java-client", "apollo-configservice"],
+  "timeoutSec": 300
+}

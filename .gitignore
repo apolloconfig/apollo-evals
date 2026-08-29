@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.cache/
+.runtime/
+versions.lock.json
+results/*
+!results/.gitkeep
+*.log
+.DS_Store
