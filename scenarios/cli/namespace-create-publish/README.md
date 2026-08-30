@@ -43,7 +43,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario cli-namespace-create-publish
-pnpm campaign -- --scenario cli-namespace-create-publish \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario cli-namespace-create-publish
+pnpm evaluate -- --scenario cli-namespace-create-publish \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```

@@ -4,7 +4,7 @@ const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const scenarioMetadataSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  campaigns: z.array(z.enum(['smoke', 'benchmark'])).min(1),
+  suites: z.array(z.enum(['smoke', 'benchmark'])).min(1),
   track: z.enum(['apollo-cli', 'apollo-java-client']),
   products: z.array(z.string()).min(1),
   timeoutSec: z.number().int().positive().optional(),

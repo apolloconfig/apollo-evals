@@ -37,8 +37,8 @@ export async function discoverScenarios(root: string): Promise<DiscoveredScenari
       const imported = await import(
         `${pathToFileURL(path.join(dir, 'scenario.ts')).href}?t=${Date.now()}`
       ) as { default: ScenarioLifecycle };
-      if (!imported.default?.arrange || !imported.default?.judge) {
-        throw new Error(`${metadata.id}: scenario.ts must export arrange and judge`);
+      if (!imported.default?.setup || !imported.default?.verify) {
+        throw new Error(`${metadata.id}: scenario.ts must export setup and verify`);
       }
       scenarios.push({ id: metadata.id, dir, metadata, prompt, lifecycle: imported.default });
     }

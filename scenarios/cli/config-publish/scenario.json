@@ -1,7 +1,7 @@
 {
   "id": "cli-config-publish",
-  "campaigns": ["smoke", "benchmark"],
+  "suites": ["smoke", "benchmark"],
   "track": "apollo-cli",
   "products": ["apollo-cli", "apollo-configservice"],
-  "timeoutSec": 180
+  "timeoutSec": 360
 }

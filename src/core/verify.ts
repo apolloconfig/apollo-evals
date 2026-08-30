@@ -19,6 +19,18 @@ const REQUIRED_CODEX_EXEC_OPTIONS = [
   '--json',
 ] as const;
 
+const REQUIRED_CLAUDE_CODE_OPTIONS = [
+  '--print',
+  '--output-format',
+  '--verbose',
+  '--no-session-persistence',
+  '--safe-mode',
+  '--strict-mcp-config',
+  '--dangerously-skip-permissions',
+  '--model',
+  '--effort',
+] as const;
+
 function requireEqual(label: string, actual: unknown, expected: unknown): void {
   if (actual !== expected) throw new Error(`${label} drifted from apollo-evals.config.ts; run pnpm prepare`);
 }
@@ -66,14 +78,47 @@ export async function verifyPrepared(): Promise<void> {
 }
 
 export async function verifyAgentAdapter(profile: AgentProfile, runner: typeof runProcess = runProcess): Promise<AgentRuntime> {
-  if (profile.adapter !== 'codex') throw new Error(`Unsupported agent adapter: ${profile.adapter}`);
+  if (profile.adapter === 'claude-code') {
+    let claude: Awaited<ReturnType<typeof runProcess>>;
+    try {
+      claude = await runner('claude', ['--version'], { timeoutMs: 30_000 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error('Claude Code CLI was not found on PATH. Install and authenticate Claude Code on the host before running an evaluation or replay.', { cause: error });
+      }
+      throw new Error(`Unable to run the host Claude Code CLI: ${String(error)}`, { cause: error });
+    }
+
+    const cliVersion = claude.stdout.trim() || claude.stderr.trim();
+    if (claude.exitCode !== 0 || claude.timedOut || !cliVersion) {
+      throw new Error(`Unable to read the host Claude Code CLI version: ${cliVersion || 'unavailable'}`);
+    }
+
+    const help = await runner('claude', ['--help'], { timeoutMs: 30_000 });
+    const helpText = `${help.stdout}\n${help.stderr}`;
+    if (help.exitCode !== 0 || help.timedOut) {
+      throw new Error(`The installed Claude Code CLI cannot run non-interactively: ${helpText.trim() || 'claude --help failed'}`);
+    }
+    const missingOptions = REQUIRED_CLAUDE_CODE_OPTIONS.filter((option) => !helpText.includes(option));
+    if (missingOptions.length) {
+      throw new Error(`The installed Claude Code CLI does not support the options required by this adapter: ${missingOptions.join(', ')}. No exact version is required; install a compatible Claude Code CLI.`);
+    }
+
+    return {
+      adapter: profile.adapter,
+      cliCommand: 'claude',
+      cliVersion,
+      model: profile.model,
+      reasoningEffort: profile.reasoningEffort,
+    };
+  }
 
   let codex: Awaited<ReturnType<typeof runProcess>>;
   try {
     codex = await runner('codex', ['--version'], { timeoutMs: 30_000 });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error('Codex CLI was not found on PATH. Install and authenticate Codex on the host before running a campaign or replay.', { cause: error });
+      throw new Error('Codex CLI was not found on PATH. Install and authenticate Codex on the host before running an evaluation or replay.', { cause: error });
     }
     throw new Error(`Unable to run the host Codex CLI: ${String(error)}`, { cause: error });
   }

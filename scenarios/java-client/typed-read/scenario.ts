@@ -3,7 +3,7 @@ import path from 'node:path';
 import { ARTIFACT_CONFIG } from '../../../apollo-evals.config.js';
 import { SeededRandom } from '../../../src/core/random.js';
 import type { ScenarioContext, ScenarioLifecycle } from '../../../src/core/types.js';
-import { check, arrangeBaseState, referenceAgent, verdict, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
+import { check, setupBaseState, oracleAgentResult, verdict, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
 
 type State = ScenarioBaseState & { public: ScenarioBaseState['public'] & { stringKey: string; intKey: string; booleanKey: string; missingKey: string; mavenRepo: string; apolloJavaVersion: string }; expected: { string: string; int: number; boolean: boolean; missing: string } };
 async function runJava(context: ScenarioContext<State>): Promise<{ compileOk: boolean; stdout: string; stderr: string }> {
@@ -19,8 +19,8 @@ async function runJava(context: ScenarioContext<State>): Promise<{ compileOk: bo
   return { compileOk: true, stdout: ran.stdout, stderr: ran.stderr };
 }
 const lifecycle: ScenarioLifecycle<State> = {
-  async arrange(context) {
-    const base = await arrangeBaseState(context, 'java-typed');
+  async setup(context) {
+    const base = await setupBaseState(context, 'java-typed');
     const random = new SeededRandom(context.identity.seed);
     const publicValues = { stringKey: random.token('str-key', 6), intKey: random.token('int-key', 6), booleanKey: random.token('bool-key', 6), missingKey: random.token('missing-key', 6) };
     const expected = { string: random.token('string-value', 10), int: random.int(100, 999), boolean: random.int(0, 1) === 1, missing: 'fallback-value' };
@@ -30,7 +30,7 @@ const lifecycle: ScenarioLifecycle<State> = {
     await context.session.control.release(base.public.targetApp, 'application', 'java-typed-values');
     return { ...base, public: { ...base.public, ...publicValues, mavenRepo: '/m2', apolloJavaVersion: ARTIFACT_CONFIG.apolloJava.version }, expected };
   },
-  async judge(context) {
+  async verify(context) {
     const pom = await readFile(path.join(context.workspace, 'pom.xml'), 'utf8');
     const source = await readFile(path.join(context.workspace, 'src/main/java/scenario/TypedRead.java'), 'utf8');
     const result = await runJava(context);
@@ -46,10 +46,10 @@ const lifecycle: ScenarioLifecycle<State> = {
       check('distractor unchanged', 'boundary', distractor[context.state.public.key] === context.state.distractorValue),
     ]);
   },
-  async reference(context) {
+  async runOracle(context) {
     const source = `package scenario;\nimport com.ctrip.framework.apollo.Config;\nimport com.ctrip.framework.apollo.ConfigService;\npublic final class TypedRead {\n  public static void main(String[] args) {\n    Config c = ConfigService.getConfig(args[0], args[1]);\n    String s = c.getProperty(args[2], "");\n    int i = c.getIntProperty(args[3], -1);\n    boolean b = c.getBooleanProperty(args[4], false);\n    String m = c.getProperty(args[5], "fallback-value");\n    System.out.printf("{\\\"string\\\":\\\"%s\\\",\\\"int\\\":%d,\\\"boolean\\\":%s,\\\"missing\\\":\\\"%s\\\"}%n", s, i, b, m);\n  }\n}\n`;
     await writeFile(path.join(context.workspace, 'src/main/java/scenario/TypedRead.java'), source);
-    return referenceAgent(['mvn -o compile', 'java scenario.TypedRead']);
+    return oracleAgentResult(['mvn -o compile', 'java scenario.TypedRead']);
   },
 };
 export default lifecycle;

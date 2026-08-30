@@ -1,6 +1,6 @@
 {
   "id": "cli-release-rollback",
-  "campaigns": ["smoke", "benchmark"],
+  "suites": ["smoke", "benchmark"],
   "track": "apollo-cli",
   "products": ["apollo-cli", "apollo-configservice"],
   "timeoutSec": 180

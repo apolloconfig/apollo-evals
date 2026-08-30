@@ -7,12 +7,24 @@ const profile: AgentProfile = {
   id: 'codex-test',
   adapter: 'codex',
   model: 'gpt-test',
-  reasoningEffort: 'xhigh',
+  reasoningEffort: 'medium',
 };
 
 const requiredHelp = [
   '--config', '--strict-config', '--model', '--sandbox', '--cd', '--skip-git-repo-check',
   '--ephemeral', '--ignore-user-config', '--ignore-rules', '--json',
+].join(' ');
+
+const claudeProfile: AgentProfile = {
+  id: 'claude-code-test',
+  adapter: 'claude-code',
+  model: 'deepseek-v4-flash',
+  reasoningEffort: 'medium',
+};
+
+const requiredClaudeHelp = [
+  '--print', '--output-format', '--verbose', '--no-session-persistence', '--safe-mode',
+  '--strict-mcp-config', '--dangerously-skip-permissions', '--model', '--effort',
 ].join(' ');
 
 function result(stdout: string, exitCode = 0): ProcessResult {
@@ -30,7 +42,7 @@ describe('agent adapter verification', () => {
       cliCommand: 'codex',
       cliVersion: 'codex-cli 99.0.0-next.1',
       model: 'gpt-test',
-      reasoningEffort: 'xhigh',
+      reasoningEffort: 'medium',
     });
   });
 
@@ -44,5 +56,26 @@ describe('agent adapter verification', () => {
     await expect(verifyAgentAdapter(profile, async () => {
       throw Object.assign(new Error('spawn codex ENOENT'), { code: 'ENOENT' });
     })).rejects.toThrow('Codex CLI was not found on PATH');
+  });
+
+  it('accepts a compatible Claude Code CLI and records the exact model identifier', async () => {
+    const runtime = await verifyAgentAdapter(claudeProfile, async (command, args) => {
+      expect(command).toBe('claude');
+      return args[0] === '--version' ? result('2.1.251 (Claude Code)\n') : result(requiredClaudeHelp);
+    });
+
+    expect(runtime).toEqual({
+      adapter: 'claude-code',
+      cliCommand: 'claude',
+      cliVersion: '2.1.251 (Claude Code)',
+      model: 'deepseek-v4-flash',
+      reasoningEffort: 'medium',
+    });
+  });
+
+  it('rejects a Claude Code CLI without effort selection support', async () => {
+    await expect(verifyAgentAdapter(claudeProfile, async (_command, args) => (
+      args[0] === '--version' ? result('2.0.0 (Claude Code)\n') : result(requiredClaudeHelp.replace('--effort', ''))
+    ))).rejects.toThrow('does not support the options required by this adapter: --effort');
   });
 });

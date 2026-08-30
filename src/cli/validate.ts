@@ -7,7 +7,7 @@ import { deriveSeed } from '../core/random.js';
 import { prepareAttemptWorkspace } from '../core/runner.js';
 import { DockerApolloRuntime } from '../runtime/docker-apollo.js';
 import { DockerJavaRunner } from '../runtime/java-runner.js';
-import { referenceAgent } from '../testing/scenario-helpers.js';
+import { oracleAgentResult } from '../testing/scenario-helpers.js';
 import { verifyPrepared } from '../core/verify.js';
 
 await verifyPrepared();
@@ -19,21 +19,21 @@ const scenarios = typeof args.scenario === 'string'
 if (!scenarios.length) throw new Error('No scenarios selected');
 
 for (const [index, scenario] of scenarios.entries()) {
-  if (!scenario.lifecycle.reference) {
-    throw new Error(`${scenario.id} has no deterministic reference`);
+  if (!scenario.lifecycle.runOracle) {
+    throw new Error(`${scenario.id} has no deterministic oracle`);
   }
   const identity = {
-    runId: 'calibration',
-    profileId: 'reference',
+    runId: 'validation',
+    profileId: 'oracle',
     scenarioId: scenario.id,
     attempt: 1,
     seed: deriveSeed(0x41504f4c, scenario.id, index),
   };
-  const workspace = path.join(WORKSPACE_ROOT, 'calibration', scenario.id);
-  const artifactsDir = path.join(PROJECT_ROOT, '.runtime', 'calibration-artifacts', scenario.id);
+  const workspace = path.join(WORKSPACE_ROOT, 'validation', scenario.id);
+  const artifactsDir = path.join(PROJECT_ROOT, '.runtime', 'validation-artifacts', scenario.id);
   const runtime = new DockerApolloRuntime();
   let javaRunner: DockerJavaRunner | undefined;
-  process.stdout.write(`[calibrate] ${scenario.id}\n`);
+  process.stdout.write(`[validate] ${scenario.id}\n`);
   try {
     await prepareAttemptWorkspace(scenario, workspace);
     const session = await runtime.start(identity);
@@ -41,20 +41,20 @@ for (const [index, scenario] of scenarios.entries()) {
       javaRunner = await DockerJavaRunner.start(session, workspace, identity);
     }
     const base = { identity, session, workspace, artifactsDir, javaRunner };
-    const state = await scenario.lifecycle.arrange(base);
-    const baseline = await scenario.lifecycle.judge({ ...base, state, agent: referenceAgent() });
+    const state = await scenario.lifecycle.setup(base);
+    const baseline = await scenario.lifecycle.verify({ ...base, state, agent: oracleAgentResult() });
     if (baseline.passed) {
-      throw new Error(`${scenario.id}: judge passed immediately after arrange`);
+      throw new Error(`${scenario.id}: verifier passed immediately after setup`);
     }
-    const reference = await scenario.lifecycle.reference({ ...base, state });
+    const oracle = await scenario.lifecycle.runOracle({ ...base, state });
     if (javaRunner) {
       await javaRunner.restart();
       await rm(path.join(workspace, '.apollo-cache'), { recursive: true, force: true });
     }
-    const verified = await scenario.lifecycle.judge({ ...base, state, agent: reference });
+    const verified = await scenario.lifecycle.verify({ ...base, state, agent: oracle });
     if (!verified.passed) {
       throw new Error(
-        `${scenario.id}: reference did not pass\n${JSON.stringify(verified.checks, null, 2)}`,
+        `${scenario.id}: oracle did not pass\n${JSON.stringify(verified.checks, null, 2)}`,
       );
     }
     const boundaryChecks = verified.checks.filter((entry) => entry.category === 'boundary');
@@ -62,11 +62,11 @@ for (const [index, scenario] of scenarios.entries()) {
       throw new Error(`${scenario.id}: boundary gate failed`);
     }
     session.control.clearSession();
-    process.stdout.write('  baseline=failed reference=passed boundary=passed\n');
+    process.stdout.write('  baseline=failed oracle=passed boundary=passed\n');
   } finally {
     await javaRunner?.stop();
     await runtime.stop();
     await rm(workspace, { recursive: true, force: true });
   }
 }
-process.stdout.write(`Calibrated ${scenarios.length} scenarios.\n`);
+process.stdout.write(`Validated ${scenarios.length} scenarios.\n`);

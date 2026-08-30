@@ -92,12 +92,17 @@ async function prepareMavenRepo(imageId: string, mavenRepo: string): Promise<voi
   await ensureDir(mavenRepo);
   const uid = typeof process.getuid === 'function' ? process.getuid() : 1000;
   const gid = typeof process.getgid === 'function' ? process.getgid() : 1000;
-  for (const starter of ['typed-read', 'change-listener']) {
+  const javaScenariosRoot = path.join(PROJECT_ROOT, 'scenarios', 'java-client');
+  const starters = (await readdir(javaScenariosRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  for (const starter of starters) {
     const staged = path.join(PROJECT_ROOT, '.cache', 'maven-starters', `java-client-${starter}`);
     await rm(staged, { recursive: true, force: true });
     await ensureDir(staged);
     await cp(
-      path.join(PROJECT_ROOT, 'scenarios', 'java-client', starter, 'workspace', 'pom.xml'),
+      path.join(javaScenariosRoot, starter, 'workspace', 'pom.xml'),
       path.join(staged, 'pom.xml'),
     );
     await runChecked('docker', [

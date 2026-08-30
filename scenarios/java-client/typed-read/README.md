@@ -30,7 +30,7 @@
 ## 刻意隐藏的实现细节
 
 - Prompt 只描述业务类型和输出契约，不出现 `ConfigService` 或具体 property getter 名称。
-- judge 在 agent 结束后重建 Java runner，再离线编译和运行最终 workspace，避免 agent 遗留进程或 Maven 状态影响结果。
+- verifier 在 agent 结束后重建 Java runner，再离线编译和运行最终 workspace，避免 agent 遗留进程或 Maven 状态影响结果。
 - 正确的 JSON 字段类型属于结果合同；把整数或布尔值作为字符串输出会失败。
 
 ## 非目标与边界
@@ -42,7 +42,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario java-client-typed-read
-pnpm campaign -- --scenario java-client-typed-read \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario java-client-typed-read
+pnpm evaluate -- --scenario java-client-typed-read \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```

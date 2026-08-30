@@ -12,8 +12,8 @@
     "check": "tsx src/cli/check-environment.ts && tsc --noEmit && vitest run",
     "test:unit": "vitest run --exclude tests/runtime.integration.test.ts",
     "test:integration": "vitest run tests/runtime.integration.test.ts",
-    "calibrate": "tsx src/cli/calibrate.ts",
-    "campaign": "tsx src/cli/campaign.ts",
+    "validate": "tsx src/cli/validate.ts",
+    "evaluate": "tsx src/cli/evaluate.ts",
     "replay": "tsx src/cli/replay.ts",
     "report": "tsx src/cli/report.ts"
   },

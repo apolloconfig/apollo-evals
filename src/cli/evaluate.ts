@@ -9,7 +9,7 @@ import { writeJson } from '../core/fs.js';
 import { loadAgentProfile } from '../core/agent-profiles.js';
 import { deriveSeed } from '../core/random.js';
 import { runAttempt } from '../core/runner.js';
-import type { Campaign } from '../core/types.js';
+import type { EvaluationSuite } from '../core/types.js';
 import { verifyAgentAdapter, verifyPrepared } from '../core/verify.js';
 
 const args = parseArgs();
@@ -17,28 +17,28 @@ await verifyPrepared();
 
 const profileId = typeof args.profile === 'string'
   ? args.profile
-  : 'codex-gpt-5.6-sol-xhigh';
+  : 'codex-gpt-5.6-sol-medium';
 const profile = await loadAgentProfile(profileId);
 const agentRuntime = await verifyAgentAdapter(profile);
 
-const campaign = typeof args.campaign === 'string' ? args.campaign as Campaign : undefined;
-if (campaign && !['smoke', 'benchmark'].includes(campaign)) {
-  throw new Error('--campaign must be smoke or benchmark');
+const suite = typeof args.suite === 'string' ? args.suite as EvaluationSuite : undefined;
+if (suite && !['smoke', 'benchmark'].includes(suite)) {
+  throw new Error('--suite must be smoke or benchmark');
 }
 const scenarioId = typeof args.scenario === 'string' ? args.scenario : undefined;
-if (!campaign && !scenarioId) {
-  throw new Error('Specify --scenario <id> or --campaign smoke|benchmark');
+if (!suite && !scenarioId) {
+  throw new Error('Specify --scenario <id> or --suite smoke|benchmark');
 }
 
 const all = await discoverScenarios(PROJECT_ROOT);
 const selected = scenarioId
   ? all.filter((scenario) => scenario.id === scenarioId)
-  : all.filter((scenario) => scenario.metadata.campaigns.includes(campaign!));
+  : all.filter((scenario) => scenario.metadata.suites.includes(suite!));
 if (!selected.length) throw new Error('No scenarios selected');
 
 const attempts = typeof args.attempts === 'string'
   ? Number(args.attempts)
-  : campaign === 'smoke'
+  : suite === 'smoke'
     ? 1
     : 3;
 if (!Number.isInteger(attempts) || attempts < 1) {
@@ -82,7 +82,7 @@ await writeJson(path.join(runDir, 'summary.json'), {
   runId,
   rootSeed,
   profile: profile.id,
-  campaign: campaign ?? null,
+  suite: suite ?? null,
   ...summary,
 });
 await writeFile(path.join(runDir, 'summary.md'), summaryMarkdown(summary, runId));

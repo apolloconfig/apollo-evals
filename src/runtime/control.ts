@@ -2,6 +2,24 @@ import type { ApolloRequestRecord } from '../core/types.js';
 
 type FetchOptions = { method?: string; body?: unknown; headers?: Record<string, string>; auth?: 'session' | 'bearer' | 'none' };
 
+export type UserTokenNamespaceScope = {
+  appId: string;
+  env: string;
+  clusterName: string;
+  namespaceName: string;
+};
+
+export type UserTokenOptions = {
+  envs?: string[];
+  operations?: string[];
+  namespaces?: UserTokenNamespaceScope[];
+};
+
+export type AppNamespaceOptions = {
+  isPublic?: boolean;
+  appendNamespacePrefix?: boolean;
+};
+
 function segment(value: string): string { return encodeURIComponent(value); }
 
 export class ApolloControlClient {
@@ -45,8 +63,17 @@ export class ApolloControlClient {
     await this.request('/apps', { method: 'POST', body: { appId, name, orgId: 'TEST1', orgName: '样例部门1', ownerName: 'apollo', admins: ['apollo'] } });
   }
 
-  async createUserToken(name: string, appIds: string[]): Promise<string> {
-    const result = await this.request<{ tokenValue: string }>('/openapi/v1/user-tokens', { method: 'POST', body: { name, appIds, envs: ['LOCAL'] } });
+  async createUserToken(name: string, appIds: string[], options: UserTokenOptions = {}): Promise<string> {
+    const result = await this.request<{ tokenValue: string }>('/openapi/v1/user-tokens', {
+      method: 'POST',
+      body: {
+        name,
+        appIds,
+        envs: options.envs ?? ['LOCAL'],
+        ...(options.operations ? { operations: options.operations } : {}),
+        ...(options.namespaces ? { namespaces: options.namespaces } : {}),
+      },
+    });
     return result.tokenValue;
   }
 
@@ -54,8 +81,18 @@ export class ApolloControlClient {
     return `/openapi/v1/envs/LOCAL/apps/${segment(appId)}/clusters/default/namespaces/${segment(namespace)}`;
   }
 
-  async createAppNamespace(appId: string, namespace: string, format: string): Promise<void> {
-    await this.request(`/openapi/v1/apps/${segment(appId)}/appnamespaces`, { method: 'POST', body: { name: namespace, appId, format, isPublic: false, appendNamespacePrefix: true, comment: 'apollo-evals' } });
+  async createAppNamespace(appId: string, namespace: string, format: string, options: AppNamespaceOptions = {}): Promise<void> {
+    await this.request(`/openapi/v1/apps/${segment(appId)}/appnamespaces`, {
+      method: 'POST',
+      body: {
+        name: namespace,
+        appId,
+        format,
+        isPublic: options.isPublic ?? false,
+        appendNamespacePrefix: options.appendNamespacePrefix ?? true,
+        comment: 'apollo-evals',
+      },
+    });
   }
 
   async createNamespace(appId: string, namespace: string): Promise<void> {
@@ -155,8 +192,8 @@ export class ApolloControlClient {
     return await this.request(`/openapi/v1/apps/${segment(appId)}/appnamespaces`);
   }
 
-  async config(appId: string, namespace = 'application'): Promise<Record<string, string>> {
-    const response = await fetch(`${this.configServiceUrl}/configs/${segment(appId)}/default/${segment(namespace)}`);
+  async config(appId: string, namespace = 'application', clusterName = 'default'): Promise<Record<string, string>> {
+    const response = await fetch(`${this.configServiceUrl}/configs/${segment(appId)}/${segment(clusterName)}/${segment(namespace)}`);
     if (response.status === 404) return {};
     if (!response.ok) throw new Error(`Config Service read failed: ${response.status}`);
     const body = await response.json() as { configurations: Record<string, string> };

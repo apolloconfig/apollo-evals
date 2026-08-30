@@ -3,7 +3,7 @@ import { loadLock } from '../../../src/core/fs.js';
 import { SeededRandom } from '../../../src/core/random.js';
 import { runProcess } from '../../../src/core/process.js';
 import type { ScenarioLifecycle } from '../../../src/core/types.js';
-import { check, commandIncludes, arrangeBaseState, referenceAgent, verdict, usedRawHttp, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
+import { check, commandIncludes, setupBaseState, oracleAgentResult, verdict, usedRawHttp, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
 
 type State = ScenarioBaseState & { public: ScenarioBaseState['public'] & { portalUrl: string; targetCluster: string; releaseTitle: string }; expected: Record<string, string> };
 
@@ -12,8 +12,8 @@ function canonical(value: Record<string, string>): string {
 }
 
 const lifecycle: ScenarioLifecycle<State> = {
-  async arrange(context) {
-    const base = await arrangeBaseState(context, 'cli-sync');
+  async setup(context) {
+    const base = await setupBaseState(context, 'cli-sync');
     const random = new SeededRandom(context.identity.seed);
     const targetCluster = random.token('canary', 6).toLowerCase();
     const expected = {
@@ -30,7 +30,7 @@ const lifecycle: ScenarioLifecycle<State> = {
     await context.session.control.releaseInCluster(base.public.targetApp, targetCluster, 'application', 'target-stale');
     return { ...base, public: { ...base.public, portalUrl: context.session.agentPortalUrl, targetCluster, releaseTitle: random.token('sync-release', 8) }, expected };
   },
-  async judge(context) {
+  async verify(context) {
     const targetItems = await context.session.control.itemsInCluster(context.state.public.targetApp, context.state.public.targetCluster);
     const actual = Object.fromEntries(targetItems.filter((item) => item.key).map((item) => [item.key, item.value]));
     const release = await context.session.control.latestReleaseInCluster(context.state.public.targetApp, context.state.public.targetCluster);
@@ -44,7 +44,7 @@ const lifecycle: ScenarioLifecycle<State> = {
       check('distractor unchanged', 'boundary', distractor[context.state.public.key] === context.state.distractorValue),
     ]);
   },
-  async reference(context) {
+  async runOracle(context) {
     const lock = await loadLock(PROJECT_ROOT);
     const common = ['--server', context.session.agentPortalUrl, '--output', 'json', '--yes'];
     const env = { ...process.env, APOLLO_TOKEN: context.state.token };
@@ -58,7 +58,7 @@ const lifecycle: ScenarioLifecycle<State> = {
       const result = await runProcess(lock.artifacts.apolloCli.path, args, { env });
       if (result.exitCode !== 0) throw new Error(result.stderr);
     }
-    return referenceAgent([
+    return oracleAgentResult([
       `${lock.artifacts.apolloCli.path} ${diffArgs.join(' ')}`,
       `${lock.artifacts.apolloCli.path} ${applyArgs.join(' ')}`,
       `${lock.artifacts.apolloCli.path} ${deleteArgs.join(' ')}`,

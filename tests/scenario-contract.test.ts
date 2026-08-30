@@ -30,6 +30,12 @@ describe('scenario authoring contract', () => {
       expect(existsSync(path.join(scenario.dir, 'scenario.json'))).toBe(true);
       expect(existsSync(path.join(scenario.dir, 'scenario.ts'))).toBe(true);
       expect(existsSync(path.join(scenario.dir, 'EVAL.ts'))).toBe(false);
+      expect(scenario.lifecycle.setup).toBeTypeOf('function');
+      expect(scenario.lifecycle.verify).toBeTypeOf('function');
+      expect(scenario.lifecycle.runOracle).toBeTypeOf('function');
+      expect(scenario.lifecycle).not.toHaveProperty('arrange');
+      expect(scenario.lifecycle).not.toHaveProperty('judge');
+      expect(scenario.lifecycle).not.toHaveProperty('reference');
     }
   });
 

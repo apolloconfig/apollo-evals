@@ -3,12 +3,12 @@ import { loadLock } from '../../../src/core/fs.js';
 import { SeededRandom } from '../../../src/core/random.js';
 import { runProcess } from '../../../src/core/process.js';
 import type { ScenarioLifecycle } from '../../../src/core/types.js';
-import { check, commandIncludes, arrangeBaseState, referenceAgent, observed, verdict, usedRawHttp, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
+import { check, commandIncludes, setupBaseState, oracleAgentResult, observed, verdict, usedRawHttp, type ScenarioBaseState } from '../../../src/testing/scenario-helpers.js';
 
 type State = ScenarioBaseState & { public: ScenarioBaseState['public'] & { stableValue: string; badValue: string; portalUrl: string }; badReleaseId: number };
 const lifecycle: ScenarioLifecycle<State> = {
-  async arrange(context) {
-    const base = await arrangeBaseState(context, 'cli-rollback');
+  async setup(context) {
+    const base = await setupBaseState(context, 'cli-rollback');
     const random = new SeededRandom(context.identity.seed);
     const stableValue = random.token('stable', 10);
     const badValue = random.token('wrong', 10);
@@ -18,7 +18,7 @@ const lifecycle: ScenarioLifecycle<State> = {
     const bad = await context.session.control.release(base.public.targetApp, 'application', 'accidental-bad-release');
     return { ...base, public: { ...base.public, stableValue, badValue, portalUrl: context.session.agentPortalUrl }, badReleaseId: Number(bad.id) };
   },
-  async judge(context) {
+  async verify(context) {
     const config = await context.session.control.config(context.state.public.targetApp);
     const release = await context.session.control.latestRelease(context.state.public.targetApp);
     const active = await context.session.control.activeReleases(context.state.public.targetApp);
@@ -31,14 +31,14 @@ const lifecycle: ScenarioLifecycle<State> = {
       check('distractor unchanged', 'boundary', distractor[context.state.public.key] === context.state.distractorValue),
     ]);
   },
-  async reference(context) {
+  async runOracle(context) {
     const lock = await loadLock(PROJECT_ROOT);
     const common = ['--server', context.session.agentPortalUrl, '--output', 'json', '--yes'];
     const env = { ...process.env, APOLLO_TOKEN: context.state.token };
     const listArgs = [...common, 'release', 'list', '--env', 'LOCAL', '--app', context.state.public.targetApp, '--namespace', 'application'];
     const rollbackArgs = [...common, 'release', 'rollback', '--env', 'LOCAL', String(context.state.badReleaseId)];
     for (const args of [listArgs, rollbackArgs]) { const result = await runProcess(lock.artifacts.apolloCli.path, args, { env }); if (result.exitCode !== 0) throw new Error(result.stderr); }
-    return referenceAgent([`${lock.artifacts.apolloCli.path} ${listArgs.join(' ')}`, `${lock.artifacts.apolloCli.path} ${rollbackArgs.join(' ')}`]);
+    return oracleAgentResult([`${lock.artifacts.apolloCli.path} ${listArgs.join(' ')}`, `${lock.artifacts.apolloCli.path} ${rollbackArgs.join(' ')}`]);
   },
 };
 export default lifecycle;

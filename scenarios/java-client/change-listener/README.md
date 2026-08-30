@@ -11,7 +11,7 @@
 ## 初始状态与可见信息
 
 - 每次 attempt 由 seed 生成目标 AppId、key、初始值和更新值。
-- arrange 在 `application` Namespace 中发布初始值；更新值和后续 release 对 agent 不可见。
+- setup 在 `application` Namespace 中发布初始值；更新值和后续 release 对 agent 不可见。
 - workspace 包含锁定 Apollo Java Client 版本的 `pom.xml` 和仍抛出 TODO 异常的 `ChangeListenerApp.java`。
 - agent 获得 `APOLLO_META`、转发到独立 Java runner 的 `mvn`/`java` 和离线 Maven 仓库，但不会获得管理 token。
 - harness 还会创建名称相近的 shadow 应用，用于检查无关副作用。
@@ -24,14 +24,14 @@
 - 源码使用 Apollo Java Client 的变更监听能力，且没有普通 HTTP 客户端实现。
 - Maven 在隔离 runner 中离线编译成功。
 - ready 事件包含 seed 生成的初始值。
-- ready 后由隐藏 judge 发布新值，change 事件必须精确报告 key、oldValue、newValue 和 `MODIFIED`。
+- ready 后由隐藏 verifier 发布新值，change 事件必须精确报告 key、oldValue、newValue 和 `MODIFIED`。
 - 程序在限定时间内以退出码 `0` 正常结束。
 - shadow 应用保持不变。
 
 ## 刻意隐藏的实现细节
 
 - Prompt 和 starter 注释都不出现具体监听器类名或注册方法；这些属于被测的 Apollo Java Client 理解。
-- judge 在 agent 结束后重建 Java runner 并重新编译，启动程序后等待 ready，只有握手成功才执行隐藏发布。
+- verifier 在 agent 结束后重建 Java runner 并重新编译，启动程序后等待 ready，只有握手成功才执行隐藏发布。
 - 输出解析会忽略非 JSON 的库日志，但业务事件本身必须符合精确字段合同并主动 flush。
 
 ## 非目标与边界
@@ -43,7 +43,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario java-client-change-listener
-pnpm campaign -- --scenario java-client-change-listener \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario java-client-change-listener
+pnpm evaluate -- --scenario java-client-change-listener \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```

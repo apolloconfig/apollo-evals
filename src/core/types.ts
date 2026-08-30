@@ -1,11 +1,11 @@
 export type ProductTrack = 'apollo-cli' | 'apollo-java-client';
-export type Campaign = 'smoke' | 'benchmark';
+export type EvaluationSuite = 'smoke' | 'benchmark';
 export type AttemptStatus = 'passed' | 'failed' | 'infra_error';
 export type CheckCategory = 'outcome' | 'interaction' | 'boundary';
 
 export type ScenarioMetadata = {
   id: string;
-  campaigns: Campaign[];
+  suites: EvaluationSuite[];
   track: ProductTrack;
   products: string[];
   timeoutSec?: number;
@@ -13,7 +13,7 @@ export type ScenarioMetadata = {
 
 export type AgentProfile = {
   id: string;
-  adapter: 'codex';
+  adapter: 'codex' | 'claude-code';
   model: string;
   reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 };
@@ -109,7 +109,7 @@ export type AgentRunResult = {
 };
 
 export interface AgentAdapter {
-  id: 'codex';
+  id: AgentProfile['adapter'];
   run(input: AgentRunInput): Promise<AgentRunResult>;
 }
 
@@ -136,9 +136,9 @@ export type ScenarioContext<T extends ScenarioState = ScenarioState> = {
 };
 
 export type ScenarioLifecycle<T extends ScenarioState = ScenarioState> = {
-  arrange(context: Omit<ScenarioContext<T>, 'state' | 'agent'>): Promise<T>;
-  judge(context: ScenarioContext<T>): Promise<Verdict>;
-  reference?(context: Omit<ScenarioContext<T>, 'agent'>): Promise<AgentRunResult>;
+  setup(context: Omit<ScenarioContext<T>, 'state' | 'agent'>): Promise<T>;
+  verify(context: ScenarioContext<T>): Promise<Verdict>;
+  runOracle?(context: Omit<ScenarioContext<T>, 'agent'>): Promise<AgentRunResult>;
 };
 
 export type DiscoveredScenario = {

@@ -11,8 +11,8 @@
 ## 初始状态与可见信息
 
 - 每次 attempt 由 seed 生成目标 AppId、key、稳定值和错误值。
-- arrange 先写入稳定值并发布 `known-good`，随后写入错误值并发布 `accidental-bad-release`；错误 release 在 agent 开始时处于活跃状态。
-- 错误 release ID、稳定值和错误值只保存在 judge state 中，不渲染到 prompt。
+- setup 先写入稳定值并发布 `known-good`，随后写入错误值并发布 `accidental-bad-release`；错误 release 在 agent 开始时处于活跃状态。
+- 错误 release ID、稳定值和错误值只保存在 verifier state 中，不渲染到 prompt。
 - harness 还会创建名称相近的 shadow 应用；`APOLLO_TOKEN` 只授权目标应用和 `LOCAL` 环境。
 - agent 可以通过 Apollo CLI 查询真实发布历史和当前状态。
 
@@ -30,7 +30,7 @@
 
 - Prompt 不提供两个 release 的 ID 或配置值，agent 必须从 Apollo 状态中辨认当前活跃发布。
 - 仅手工覆盖 item 或新建一个 release 不能满足“错误 release 不再活跃”和 required-interface 检查。
-- judge 同时验证 Config Service、release 状态、命令轨迹和实际 rollback 请求。
+- verifier 同时验证 Config Service、release 状态、命令轨迹和实际 rollback 请求。
 
 ## 非目标与边界
 
@@ -42,7 +42,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario cli-release-rollback
-pnpm campaign -- --scenario cli-release-rollback \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario cli-release-rollback
+pnpm evaluate -- --scenario cli-release-rollback \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```

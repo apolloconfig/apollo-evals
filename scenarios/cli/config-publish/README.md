@@ -29,7 +29,7 @@
 
 - Prompt 只表达“数字类型”和“需要生效”，不提供 item type 编码、具体子命令或操作顺序。
 - 仅修改 Portal 中的未发布 item 不足以通过；客户端可见状态由独立的 Config Service 请求验证。
-- judge 不采信 agent 的完成声明，而是读取真实 Apollo 状态和归一化命令轨迹。
+- verifier 不采信 agent 的完成声明，而是读取真实 Apollo 状态和归一化命令轨迹。
 
 ## 非目标与边界
 
@@ -40,7 +40,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario cli-config-publish
-pnpm campaign -- --scenario cli-config-publish \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario cli-config-publish
+pnpm evaluate -- --scenario cli-config-publish \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```

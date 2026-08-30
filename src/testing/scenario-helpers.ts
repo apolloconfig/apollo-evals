@@ -15,7 +15,7 @@ export type ScenarioBaseState = ScenarioState & {
   distractorValue: string;
 };
 
-export async function arrangeBaseState(
+export async function setupBaseState(
   context: Omit<ScenarioContext<ScenarioBaseState>, 'state' | 'agent'>,
   label: string,
 ): Promise<ScenarioBaseState> {
@@ -59,12 +59,12 @@ export function observed(context: ScenarioContext, method: string, pattern: RegE
   );
 }
 
-export function referenceAgent(commands: string[] = []): AgentRunResult {
+export function oracleAgentResult(commands: string[] = []): AgentRunResult {
   return {
     ok: true,
     exitCode: 0,
     timedOut: false,
-    stopReason: 'reference',
+    stopReason: 'oracle',
     durationMs: 0,
     inputTokens: 0,
     outputTokens: 0,

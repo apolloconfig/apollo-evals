@@ -1,6 +1,8 @@
+import { existsSync } from 'node:fs';
 import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PROJECT_ROOT, WORKSPACE_ROOT } from '../../apollo-evals.config.js';
+import { ClaudeCodeAdapter } from '../agent/claude-code.js';
 import { CodexAdapter } from '../agent/codex.js';
 import { DockerApolloRuntime } from '../runtime/docker-apollo.js';
 import { DockerJavaRunner } from '../runtime/java-runner.js';
@@ -32,16 +34,27 @@ function isolatedEnv(
   track: DiscoveredScenario['metadata']['track'],
   lock: Awaited<ReturnType<typeof loadLock>>,
   state: ScenarioState,
+  profile: AgentProfile,
   javaRunner?: DockerJavaRunner,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
-  for (const key of ['HOME', 'CODEX_HOME', 'OPENAI_API_KEY', 'LANG', 'LC_ALL', 'SHELL', 'TMPDIR', 'TERM', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) if (process.env[key]) env[key] = process.env[key];
-  const standardPath = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
-  env.PATH = track === 'apollo-cli'
-    ? `${path.dirname(lock.artifacts.apolloCli.path)}:${standardPath}`
+  for (const key of [
+    'HOME', 'CODEX_HOME', 'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_CUSTOM_HEADERS',
+    'CLAUDE_CODE_OAUTH_TOKEN', 'CLAUDE_CONFIG_DIR',
+    'LANG', 'LC_ALL', 'SHELL', 'TMPDIR', 'TERM', 'SSL_CERT_FILE', 'SSL_CERT_DIR',
+  ]) if (process.env[key]) env[key] = process.env[key];
+  const agentCommand = profile.adapter === 'codex' ? 'codex' : 'claude';
+  const agentBin = process.env.PATH?.split(path.delimiter)
+    .find((dir) => path.isAbsolute(dir) && existsSync(path.join(dir, agentCommand)));
+  const executablePaths = track === 'apollo-cli'
+    ? [path.dirname(lock.artifacts.apolloCli.path)]
     : track === 'apollo-java-client' && javaRunner
-      ? `${javaRunner.toolBin}:${standardPath}`
-      : standardPath;
+      ? [javaRunner.toolBin]
+      : [];
+  if (agentBin) executablePaths.push(agentBin);
+  executablePaths.push('/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin');
+  env.PATH = [...new Set(executablePaths)].join(path.delimiter);
   env.APOLLO_SERVER = String(state.public.portalUrl ?? '');
   if (track !== 'apollo-java-client' && state.token) env.APOLLO_TOKEN = state.token;
   if (track === 'apollo-java-client') {
@@ -54,6 +67,23 @@ function isolatedEnv(
 
 function emptyAgent(reason: string): AgentRunResult {
   return { ok: false, exitCode: null, timedOut: false, stopReason: reason, durationMs: 0, inputTokens: 0, outputTokens: 0, toolCalls: 0, events: [], commands: [], externalUrls: [] };
+}
+
+export function attemptWorkspacePath(
+  identity: AttemptIdentity,
+  attemptLabel: string,
+): string {
+  return path.join(
+    WORKSPACE_ROOT,
+    `${identity.runId}-${identity.profileId}-${identity.scenarioId}-${attemptLabel}-${identity.seed}`,
+  );
+}
+
+function createAgentAdapter(profile: AgentProfile) {
+  switch (profile.adapter) {
+    case 'codex': return new CodexAdapter();
+    case 'claude-code': return new ClaudeCodeAdapter();
+  }
 }
 
 export async function runAttempt(
@@ -71,7 +101,7 @@ export async function runAttempt(
     scenario.id,
     attemptLabel,
   );
-  const workspace = path.join(WORKSPACE_ROOT, `${identity.runId}-${scenario.id}-${attemptLabel}`);
+  const workspace = attemptWorkspacePath(identity, attemptLabel);
   await ensureDir(artifactsDir);
   await prepareAttemptWorkspace(scenario, workspace);
   const runtime = new DockerApolloRuntime();
@@ -88,18 +118,21 @@ export async function runAttempt(
       javaRunner = await DockerJavaRunner.start(session, workspace, identity);
     }
     const baseContext = { identity, session, workspace, artifactsDir, javaRunner };
-    state = await scenario.lifecycle.arrange(baseContext);
+    state = await scenario.lifecycle.setup(baseContext);
     for (const secret of state.secrets ?? []) redactor.add(secret);
-    for (const key of ['OPENAI_API_KEY', 'CODEX_API_KEY']) redactor.add(process.env[key]);
+    for (const key of [
+      'OPENAI_API_KEY', 'CODEX_API_KEY',
+      'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS', 'CLAUDE_CODE_OAUTH_TOKEN',
+    ]) redactor.add(process.env[key]);
     const lock = await loadLock(PROJECT_ROOT);
     const prompt = renderPrompt(scenario.prompt, state.public);
     await writeFile(path.join(artifactsDir, 'prompt.rendered.md'), redactor.redact(prompt), { mode: 0o600 });
-    agent = await new CodexAdapter().run({
+    agent = await createAgentAdapter(profile).run({
       prompt,
       workspace,
       profile,
       timeoutSec: scenario.metadata.timeoutSec ?? 240,
-      env: isolatedEnv(scenario.metadata.track, lock, state, javaRunner),
+      env: isolatedEnv(scenario.metadata.track, lock, state, profile, javaRunner),
       transcriptPath: path.join(artifactsDir, 'transcript.jsonl'),
       stderrPath: path.join(artifactsDir, 'agent.stderr'),
       redactor,
@@ -108,12 +141,12 @@ export async function runAttempt(
       await javaRunner.restart();
       await rm(path.join(workspace, '.apollo-cache'), { recursive: true, force: true });
     }
-    const judged = await scenario.lifecycle.judge({ ...baseContext, state, agent });
-    const status = agent.ok && judged.passed ? 'passed' : 'failed';
+    const verified = await scenario.lifecycle.verify({ ...baseContext, state, agent });
+    const status = agent.ok && verified.passed ? 'passed' : 'failed';
     result = {
       runId: identity.runId, profileId: profile.id, scenarioId: scenario.id, attempt: identity.attempt, seed: identity.seed,
       agent: agentRuntime,
-      status, checks: judged.checks, durationMs: Date.now() - started, inputTokens: agent.inputTokens, outputTokens: agent.outputTokens,
+      status, checks: verified.checks, durationMs: Date.now() - started, inputTokens: agent.inputTokens, outputTokens: agent.outputTokens,
       toolCalls: agent.toolCalls, apolloHttpCalls: session.observation.records.length, externalUrls: agent.externalUrls, stopReason: agent.stopReason,
     };
     await writeJson(path.join(artifactsDir, 'transcript.normalized.json'), agent.events);

@@ -42,7 +42,7 @@
 ## 验证方式
 
 ```bash
-pnpm calibrate -- --scenario cli-config-sync-release
-pnpm campaign -- --scenario cli-config-sync-release \
-  --profile codex-gpt-5.6-sol-xhigh --attempts 1 --seed 20260829
+pnpm validate -- --scenario cli-config-sync-release
+pnpm evaluate -- --scenario cli-config-sync-release \
+  --profile codex-gpt-5.6-sol-medium --attempts 1 --seed 20260829
 ```
