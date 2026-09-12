@@ -9,3 +9,5 @@ jobs-output/
 results/
 *.log
 .DS_Store
+node_modules/
+versions.lock.json

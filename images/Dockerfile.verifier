@@ -1,5 +1,6 @@
 FROM apollo-evals/agent:0.2.0
 WORKDIR /opt/apollo-evals
 COPY apollo_testkit/ apollo_testkit/
+COPY tasks/ tasks/
 ENV PYTHONPATH=/opt/apollo-evals PYTHONUNBUFFERED=1
 WORKDIR /workspace

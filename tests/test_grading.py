@@ -1,9 +1,8 @@
 import copy
-import json
 from pathlib import Path
 
-from apollo_testkit.fixtures import LABELS, definition
-from apollo_testkit.grade import grade_cli, raw_http, safe_pom, trajectory_commands
+from apollo_testkit.catalog import case_names, definition, load_case, negative_controls
+from apollo_testkit.grading import raw_http, safe_pom, trajectory_commands
 
 
 def example():
@@ -25,33 +24,35 @@ def example():
 
 def test_correct_publication_requires_service_state_and_commands():
     evidence, requests, commands = example()
-    assert all(c["passed"] for c in grade_cli(evidence, requests, commands))
+    grade = load_case("cli-config-publish").grade
+    assert all(c["passed"] for c in grade(evidence, requests, commands))
     for field in ("items", "release", "config"):
         wrong = copy.deepcopy(evidence)
         wrong["target"][field] = [] if field == "items" else {}
-        assert not all(c["passed"] for c in grade_cli(wrong, requests, commands))
-    assert not all(c["passed"] for c in grade_cli(evidence, [], commands))
-    assert not all(c["passed"] for c in grade_cli(evidence, requests, []))
+        assert not all(c["passed"] for c in grade(wrong, requests, commands))
+    assert not all(c["passed"] for c in grade(evidence, [], commands))
+    assert not all(c["passed"] for c in grade(evidence, requests, []))
 
 
 def test_boundary_failure_cannot_be_compensated_by_outcomes():
     evidence, requests, commands = example()
     evidence["distractor"] = {}
-    checks = grade_cli(evidence, requests, commands)
+    checks = load_case("cli-config-publish").grade(evidence, requests, commands)
     assert checks[-1]["category"] == "boundary" and not checks[-1]["passed"]
 
 
 def test_raw_http_or_failed_cli_does_not_satisfy_interaction():
     evidence, requests, commands = example()
+    grade = load_case("cli-config-publish").grade
     for command in [
         "curl http://gateway:8070/openapi/v1/foo",
         "sh -c 'curl example.org'",
         "apollo api put /items",
     ]:
-        checks = grade_cli(evidence, requests, commands, [command])
+        checks = grade(evidence, requests, commands, [command])
         assert not next(c for c in checks if c["category"] == "interaction")["passed"]
     commands[0]["exitCode"] = 1
-    assert not all(c["passed"] for c in grade_cli(evidence, requests, commands))
+    assert not all(c["passed"] for c in grade(evidence, requests, commands))
 
 
 def test_only_tool_arguments_are_read_as_commands():
@@ -68,7 +69,7 @@ def test_only_tool_arguments_are_read_as_commands():
 
 
 def test_all_fixtures_are_deterministic_and_keep_private_values_private():
-    for task in LABELS:
+    for task in case_names():
         first, other = definition(task, 1234), definition(task, 1235)
         assert first == definition(task, 1234)
         assert first["public"]["targetApp"] != other["public"]["targetApp"]
@@ -89,9 +90,18 @@ def test_pom_rejects_alternate_dependency_and_executable_plugins(tmp_path):
 
 
 def test_original_check_contract_has_ten_tasks_and_sixty_checks():
-    contract = json.loads(Path("tests/fixtures/legacy-checks.json").read_text())
-    assert set(contract) == set(LABELS)
-    assert sum(map(len, contract.values())) == 60
+    cases = [load_case(task) for task in case_names()]
+    assert len(cases) == 10
+    assert sum(len(case.CHECKS) for case in cases) == 60
+
+
+def test_negative_controls_are_owned_by_their_cases():
+    controls = [(task, name) for task, name, _ in negative_controls()]
+    assert controls == [
+        ("cli-config-publish", "cli-unpublished"),
+        ("cli-config-publish", "cli-raw-http"),
+        ("java-client-typed-read", "java-hardcoded"),
+    ]
 
 
 def test_capability_task_does_not_disclose_authorization_scope():

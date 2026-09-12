@@ -8,6 +8,9 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from apollo_testkit.catalog import all_contracts
 
 
 def summarize(job, expected, reward=1):
@@ -15,7 +18,7 @@ def summarize(job, expected, reward=1):
     stats = job_result["stats"]
     errors = []
     trials = []
-    contract = json.loads((ROOT / "tests/fixtures/legacy-checks.json").read_text())
+    contract = all_contracts()
     for path in sorted(job.glob("*/result.json")):
         result = json.loads(path.read_text())
         if "task_name" not in result:
@@ -76,41 +79,13 @@ def summarize(job, expected, reward=1):
     }
 
 
-def compare_baseline(summary, baseline):
-    """Compare task/seed/check outcomes, not incomparable timing or token counters."""
-    expected = {trial["scenarioId"]: trial for trial in baseline["trials"]}
-    actual = {trial["task"]: trial for trial in summary["trials"]}
-    differences = []
-    if len(actual) != len(summary["trials"]):
-        differences.append("Baseline comparison requires one attempt per task")
-    if set(actual) != set(expected):
-        differences.append("Task catalogs differ")
-    for task in sorted(set(actual) & set(expected)):
-        old, new = expected[task], actual[task]
-        if old["seed"] != new["seed"]:
-            differences.append(f"{task}: seed differs")
-        if (old["status"] == "passed") != (new["reward"] == 1 and not new["exception"]):
-            differences.append(f"{task}: task outcome differs")
-        before = Counter((c["name"], c["category"], c["passed"]) for c in old["checks"])
-        after = Counter((c["name"], c["category"], c["passed"]) for c in new["checks"])
-        if before != after:
-            differences.append(f"{task}: named check outcomes differ")
-    return {"run": baseline["run"], "equivalent_outcomes": not differences, "differences": differences}
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("job", type=Path)
     parser.add_argument("--expected", type=int, default=10)
     parser.add_argument("--reward", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--baseline", type=Path, help="Compare one attempt per task with a legacy snapshot")
     args = parser.parse_args()
     result = summarize(args.job, args.expected, args.reward)
-    if args.baseline:
-        comparison = compare_baseline(result, json.loads(args.baseline.read_text()))
-        result["baseline_comparison"] = comparison
-        result["errors"].extend(comparison["differences"])
-        result["accepted"] = not result["errors"]
     output = args.job / "apollo-summary.json"
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({k: v for k, v in result.items() if k != "trials"}, ensure_ascii=False, indent=2))

@@ -4,13 +4,15 @@ import yaml
 from harbor.models.job.config import JobConfig
 from harbor.models.task.task import Task
 
-from apollo_testkit.fixtures import definition
+from apollo_testkit.catalog import case_names, definition, load_case
 
 
 def test_native_tasks_are_independent_harbor_tasks():
     tasks = sorted(Path("tasks").iterdir())
     assert len(tasks) == 10
+    assert set(case_names()) == {path.name for path in tasks}
     for path in tasks:
+        case = load_case(path.name)
         task = Task(path)
         assert task.config.verifier.environment_mode.value == "separate"
         assert task.config.agent.user == "agent"
@@ -28,6 +30,7 @@ def test_native_tasks_are_independent_harbor_tasks():
         assert compose["services"]["apollo"]["networks"] == ["backend"]
         assert compose["networks"]["backend"]["internal"]
         assert "import_path" not in (path / "task.toml").read_text()
+        assert case.CATEGORY == task.config.metadata["category"]
 
 
 def test_jobs_use_builtin_agents_environments_and_verifier():

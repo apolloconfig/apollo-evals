@@ -5,8 +5,8 @@ prepare:
 	uv sync --frozen
 	uv run python scripts/prepare.py
 check:
-	uv run ruff check apollo_testkit tests scripts images
-	uv run ruff format --check apollo_testkit tests scripts images
+	uv run ruff check apollo_testkit tests scripts images tasks/*/case.py
+	uv run ruff format --check apollo_testkit tests scripts images tasks/*/case.py
 	uv run pytest -q
 oracle:
 	uv run harbor run -c jobs/oracle.yaml

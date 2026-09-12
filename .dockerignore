@@ -1,5 +1,7 @@
 .git
 .venv
+node_modules
+versions.lock.json
 .cache/*
 !.cache/build/
 .cache/build/*
@@ -8,3 +10,6 @@
 jobs-output
 results
 __pycache__
+tasks/**
+!tasks/*/
+!tasks/*/case.py

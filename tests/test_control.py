@@ -1,5 +1,5 @@
+from apollo_testkit.catalog import definition, initialize
 from apollo_testkit.control import APIError, Apollo
-from apollo_testkit.fixtures import definition, initialize
 
 
 class RecordingApollo:
@@ -45,7 +45,7 @@ def test_namespace_reads_only_suppress_real_not_found():
 
 
 def test_snapshot_accepts_the_servers_active_release_array():
-    from apollo_testkit.fixtures import snapshot
+    from apollo_testkit.catalog import snapshot
 
     state = definition("cli-release-rollback", 123)
     api = RecordingApollo()

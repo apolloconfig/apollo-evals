@@ -10,8 +10,8 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from .catalog import load_case
 from .control import Apollo, NoRedirect
-from .fixtures import definition, initialize, snapshot
 
 DATA = Path("/var/lib/apollo-evals")
 LOCK = threading.Lock()
@@ -26,16 +26,16 @@ def save(path, value):
 
 def public_fixture(state):
     public = dict(state["public"])
-    if state["task"] == "cli-auth-capability-scope":
-        public.pop("targetApp", None)
-        public.pop("distractorApp", None)
+    for field in getattr(load_case(state["task"]), "PRIVATE_PUBLIC_FIELDS", ()):
+        public.pop(field, None)
     return {**public, "token": state.get("token", "")}
 
 
 def serve():
     api = Apollo()
     api.ready()
-    state = initialize(api, definition(os.environ["APOLLO_TASK"], int(os.environ["APOLLO_SEED"])))
+    case = load_case(os.environ["APOLLO_TASK"])
+    state = case.initialize(api, case.definition(int(os.environ["APOLLO_SEED"])))
     save(DATA / "state.json", state)
     (DATA / "requests.jsonl").write_text("")
 
@@ -137,7 +137,7 @@ def collect():
     state = json.loads((DATA / "state.json").read_text())
     api = Apollo()
     api.login()
-    save(DATA / "snapshot.json", snapshot(api, state))
+    save(DATA / "snapshot.json", load_case(state["task"]).snapshot(api, state))
 
 
 if __name__ == "__main__":

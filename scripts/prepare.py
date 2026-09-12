@@ -63,7 +63,11 @@ def main():
         if args.force:
             command.append("--no-cache")
         subprocess.run(command + ["."], cwd=ROOT, check=True)
-    inputs = [*ROOT.glob("images/*"), *ROOT.glob("apollo_testkit/*.py")]
+    inputs = [
+        *ROOT.glob("images/*"),
+        *ROOT.glob("apollo_testkit/*.py"),
+        *ROOT.glob("tasks/*/case.py"),
+    ]
     record = {
         "images": {},
         "sources": {
