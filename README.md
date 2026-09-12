@@ -92,7 +92,7 @@ The default is `codex-gpt-5.6-sol-medium`, and each profile ID gets a separate r
 | Profile | Adapter | Model | Effort |
 |---|---|---|---|
 | `codex-gpt-5.6-sol-medium` | Codex | `gpt-5.6-sol` | `medium` |
-| `claude-code-deepseek-v4-flash-medium` | Claude Code | `deepseek-v4-flash` | `medium` |
+| `claude-code-deepseek-flash-medium` | Claude Code | `deepseek-flash` | `medium` |
 
 Add new configurations as `AgentProfile` files under `agent-profiles/<adapter>/`.
 

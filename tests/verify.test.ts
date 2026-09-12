@@ -18,7 +18,7 @@ const requiredHelp = [
 const claudeProfile: AgentProfile = {
   id: 'claude-code-test',
   adapter: 'claude-code',
-  model: 'deepseek-v4-flash',
+  model: 'deepseek-flash',
   reasoningEffort: 'medium',
 };
 
@@ -68,7 +68,7 @@ describe('agent adapter verification', () => {
       adapter: 'claude-code',
       cliCommand: 'claude',
       cliVersion: '2.1.251 (Claude Code)',
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-flash',
       reasoningEffort: 'medium',
     });
   });

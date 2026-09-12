@@ -1,8 +1,8 @@
 import type { AgentProfile } from '../../src/core/types.js';
 
 export default {
-  id: 'claude-code-deepseek-v4-flash-medium',
+  id: 'claude-code-deepseek-flash-medium',
   adapter: 'claude-code',
-  model: 'deepseek-v4-flash',
+  model: 'deepseek-flash',
   reasoningEffort: 'medium',
 } satisfies AgentProfile;

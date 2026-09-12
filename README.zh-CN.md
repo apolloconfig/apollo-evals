@@ -92,7 +92,7 @@ pnpm report -- --run-id <run-id>
 | Profile | Adapter | 模型 | Effort |
 |---|---|---|---|
 | `codex-gpt-5.6-sol-medium` | Codex | `gpt-5.6-sol` | `medium` |
-| `claude-code-deepseek-v4-flash-medium` | Claude Code | `deepseek-v4-flash` | `medium` |
+| `claude-code-deepseek-flash-medium` | Claude Code | `deepseek-flash` | `medium` |
 
 新增配置时，在 `agent-profiles/<adapter>/` 下增加一个实现 `AgentProfile` 的文件即可。
 
