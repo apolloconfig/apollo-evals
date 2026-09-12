@@ -1,0 +1,41 @@
+FROM maven:3.9.11-eclipse-temurin-17@sha256:e4a7ace3dc0d645ed97f8d9ad0b0d3f0b14fa8d150138f27f116d7105a639b82
+RUN apt-get update && apt-get install -y --no-install-recommends python3 curl git jq ripgrep procps tmux ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+ARG TARGETARCH
+RUN case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+      arm64) target=aarch64-unknown-linux-gnu; checksum=4380a4f0a6d0e00822cb54b8adb1dc6a40bc6f68085e872837a666f93672def0 ;; \
+      amd64) target=x86_64-unknown-linux-gnu; checksum=185f5f5efebf85a4fa3c7aa344290739fda27abff338364cfd8d3f4083d8dc11 ;; \
+      *) exit 1 ;; esac \
+    && curl -fsSL --retry 3 "https://github.com/apolloconfig/apollo-cli/releases/download/v0.1.0/apollo-v0.1.0-${target}.tar.gz" -o /tmp/apollo.tgz \
+    && echo "$checksum  /tmp/apollo.tgz" | sha256sum -c - \
+    && mkdir -p /opt/apollo/bin \
+    && tar xzf /tmp/apollo.tgz -C /tmp \
+    && cp "/tmp/apollo-v0.1.0-${target}/apollo" /opt/apollo/bin/apollo \
+    && chmod 755 /opt/apollo/bin/apollo && rm -rf /tmp/apollo*
+COPY images/pom.xml /tmp/deps/pom.xml
+RUN mvn -q -f /tmp/deps/pom.xml -Dmaven.repo.local=/m2 dependency:go-offline compile dependency:build-classpath \
+    && echo '896548ef08f6c2721f57d7273fb770abc3189d8b55f3c4af2b1b67a1f1e122be  /m2/com/ctrip/framework/apollo/apollo-client/2.5.0/apollo-client-2.5.0.jar' | sha256sum -c -
+RUN mkdir -p /tmp/deps/src/main/java \
+    && printf 'public class Warmup {}\n' > /tmp/deps/src/main/java/Warmup.java \
+    && mvn -q -f /tmp/deps/pom.xml -Dmaven.repo.local=/m2 compile
+RUN (getent passwd 1000 >/dev/null && usermod -l agent -d /home/agent $(getent passwd 1000 | cut -d: -f1) || useradd -m -u 1000 agent) \
+    && mkdir -p /home/agent /workspace /logs/artifacts /logs/agent /logs/verifier \
+    && chown -R 1000:1000 /home/agent /workspace /m2 /logs
+COPY images/agent-start.py /usr/local/bin/agent-start
+COPY images/apollo-command.py /usr/local/bin/apollo
+RUN chmod 755 /usr/local/bin/agent-start /usr/local/bin/apollo
+ENV HOME=/home/agent APOLLO_SERVER=http://gateway:8070 APOLLO_META=http://gateway:8080 APOLLO_CACHE_DIR=/tmp/apollo-cache MAVEN_OPTS=-Dmaven.repo.local=/m2
+WORKDIR /workspace
+# Install the official native Codex executable. Harbor reuses it after its version check.
+COPY .cache/build/codex.tgz /tmp/codex.tgz
+ARG CODEX_ARCHIVE_SHA256
+RUN echo "$CODEX_ARCHIVE_SHA256  /tmp/codex.tgz" | sha256sum -c - \
+    && mkdir -p /tmp/codex-extract \
+    && tar xzf /tmp/codex.tgz -C /tmp/codex-extract \
+    && cp -a /tmp/codex-extract/package/vendor/* /opt/codex \
+    && ln -s /opt/codex/bin/codex /usr/local/bin/codex \
+    && chmod 755 /usr/local/bin/codex \
+    && codex --version \
+    && rm -rf /tmp/codex.tgz /tmp/codex-extract /home/agent/.codex
+
+ENV PATH=/opt/codex/codex-path:$PATH

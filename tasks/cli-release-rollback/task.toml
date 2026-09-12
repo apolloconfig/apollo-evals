@@ -1,0 +1,43 @@
+schema_version = "1.4"
+artifacts = [{ source = "/var/lib/apollo-evals/snapshot.json", service = "gateway" }, { source = "/var/lib/apollo-evals/requests.jsonl", service = "gateway" }, "/logs/agent/trajectory.json"]
+
+[task]
+name = "apollo/cli-release-rollback"
+version = "0.2.0"
+description = "cli-release-rollback"
+
+[metadata]
+category = "cli"
+seed = 1044323262
+suites = ["smoke", "benchmark"]
+apollo_version = "3.0.0-SNAPSHOT"
+apollo_cli_version = "0.1.0"
+apollo_java_version = "2.5.0"
+
+[agent]
+timeout_sec = 180
+user = "agent"
+
+[environment]
+build_timeout_sec = 600
+cpus = 2
+memory_mb = 2048
+
+[environment.healthcheck]
+command = "test -f /tmp/task-ready"
+interval_sec = 1
+timeout_sec = 2
+retries = 240
+
+[verifier]
+timeout_sec = 360
+environment_mode = "separate"
+
+[verifier.environment]
+cpus = 2
+memory_mb = 2048
+
+[[verifier.collect]]
+service = "gateway"
+command = "python -m apollo_testkit.service snapshot"
+timeout_sec = 60

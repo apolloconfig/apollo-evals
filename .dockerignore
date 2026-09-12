@@ -1,0 +1,10 @@
+.git
+.venv
+.cache/*
+!.cache/build/
+.cache/build/*
+!.cache/build/codex.tgz
+.runtime
+jobs-output
+results
+__pycache__

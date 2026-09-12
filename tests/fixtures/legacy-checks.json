@@ -1,0 +1,262 @@
+{
+  "cli-public-namespace-share": [
+    {
+      "name": "public properties AppNamespace has exact name",
+      "category": "outcome"
+    },
+    {
+      "name": "shared item value and string type",
+      "category": "outcome"
+    },
+    {
+      "name": "shared release contains value",
+      "category": "outcome"
+    },
+    {
+      "name": "provider Config Service exposes value",
+      "category": "outcome"
+    },
+    {
+      "name": "consumer reads public Namespace value",
+      "category": "outcome"
+    },
+    {
+      "name": "used namespace, config, and release resource commands",
+      "category": "interaction"
+    },
+    {
+      "name": "consumer application baseline unchanged",
+      "category": "boundary"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "cli-namespace-create-publish": [
+    {
+      "name": "private properties AppNamespace metadata",
+      "category": "outcome"
+    },
+    {
+      "name": "namespace item value and type",
+      "category": "outcome"
+    },
+    {
+      "name": "active release contains value",
+      "category": "outcome"
+    },
+    {
+      "name": "Config Service exposes value",
+      "category": "outcome"
+    },
+    {
+      "name": "used namespace create, config set, and release create",
+      "category": "interaction"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "cli-release-rollback": [
+    {
+      "name": "Config Service restored stable value",
+      "category": "outcome"
+    },
+    {
+      "name": "active release restored stable value",
+      "category": "outcome"
+    },
+    {
+      "name": "bad release is no longer active",
+      "category": "outcome"
+    },
+    {
+      "name": "used release list and rollback",
+      "category": "interaction"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "cli-auth-capability-scope": [
+    {
+      "name": "scoped item value and string type",
+      "category": "outcome"
+    },
+    {
+      "name": "scoped release contains value",
+      "category": "outcome"
+    },
+    {
+      "name": "Config Service exposes scoped value",
+      "category": "outcome"
+    },
+    {
+      "name": "queried token capabilities through Apollo CLI",
+      "category": "interaction"
+    },
+    {
+      "name": "used config and release resource commands",
+      "category": "interaction"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "cli-config-publish": [
+    {
+      "name": "item value and type",
+      "category": "outcome"
+    },
+    {
+      "name": "active release contains value",
+      "category": "outcome"
+    },
+    {
+      "name": "Config Service exposes value",
+      "category": "outcome"
+    },
+    {
+      "name": "used apollo config set and release create",
+      "category": "interaction"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "cli-config-sync-release": [
+    {
+      "name": "target added updated and deleted exactly",
+      "category": "outcome"
+    },
+    {
+      "name": "target active release equals source",
+      "category": "outcome"
+    },
+    {
+      "name": "source remained unchanged",
+      "category": "boundary"
+    },
+    {
+      "name": "used config diff, apply, delete, and target release create",
+      "category": "interaction"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "java-client-typed-read": [
+    {
+      "name": "locked apollo-client dependency",
+      "category": "interaction"
+    },
+    {
+      "name": "explicit app and namespace ConfigService call",
+      "category": "interaction"
+    },
+    {
+      "name": "uses typed getters",
+      "category": "interaction"
+    },
+    {
+      "name": "program compiles offline",
+      "category": "outcome"
+    },
+    {
+      "name": "program reads correct typed values",
+      "category": "outcome"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "java-client-mixed-namespace-formats": [
+    {
+      "name": "locked apollo-client dependency",
+      "category": "interaction"
+    },
+    {
+      "name": "uses normal and file Apollo Java Client reads",
+      "category": "interaction"
+    },
+    {
+      "name": "uses typed YAML getters",
+      "category": "interaction"
+    },
+    {
+      "name": "program compiles offline",
+      "category": "outcome"
+    },
+    {
+      "name": "program reads YAML types and exact JSON file",
+      "category": "outcome"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "java-client-change-listener": [
+    {
+      "name": "locked apollo-client dependency",
+      "category": "interaction"
+    },
+    {
+      "name": "uses Apollo change listener API",
+      "category": "interaction"
+    },
+    {
+      "name": "program compiles offline",
+      "category": "outcome"
+    },
+    {
+      "name": "ready exposes initial value",
+      "category": "outcome"
+    },
+    {
+      "name": "listener reports exact change",
+      "category": "outcome"
+    },
+    {
+      "name": "program exits normally",
+      "category": "outcome"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ],
+  "java-client-cluster-precedence": [
+    {
+      "name": "locked apollo-client dependency",
+      "category": "interaction"
+    },
+    {
+      "name": "uses cluster-aware Apollo Java Client read",
+      "category": "interaction"
+    },
+    {
+      "name": "program compiles offline",
+      "category": "outcome"
+    },
+    {
+      "name": "preferred cluster overrides default",
+      "category": "outcome"
+    },
+    {
+      "name": "missing cluster falls back to default",
+      "category": "outcome"
+    },
+    {
+      "name": "distractor unchanged",
+      "category": "boundary"
+    }
+  ]
+}

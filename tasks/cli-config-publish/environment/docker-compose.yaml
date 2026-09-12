@@ -1,0 +1,29 @@
+services:
+  main:
+    entrypoint: ["python3", "/usr/local/bin/agent-start"]
+    networks: [frontend]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER]
+  apollo:
+    image: nobodyiam/apollo-quick-start@sha256:9867179f463bbb185a5f9fff9849a396f5963bab8ff099737db4f530e77427a6
+    entrypoint: ["java", "-jar", "/apollo-quick-start/apollo-all-in-one.jar"]
+    environment:
+      SPRING_PROFILES_ACTIVE: github,database-discovery,auth
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      SPRING_SQL_CONFIG_INIT_MODE: always
+      SPRING_SQL_PORTAL_INIT_MODE: always
+      SPRING_CONFIG_DATASOURCE_URL: "jdbc:h2:mem:config;mode=mysql;DB_CLOSE_ON_EXIT=FALSE;DB_CLOSE_DELAY=-1;BUILTIN_ALIAS_OVERRIDE=TRUE;DATABASE_TO_UPPER=FALSE"
+      SPRING_PORTAL_DATASOURCE_URL: "jdbc:h2:mem:portal;mode=mysql;DB_CLOSE_ON_EXIT=FALSE;DB_CLOSE_DELAY=-1;BUILTIN_ALIAS_OVERRIDE=TRUE;DATABASE_TO_UPPER=FALSE"
+    networks: [backend]
+    mem_limit: 2g
+  gateway:
+    image: apollo-evals/control:0.2.0
+    environment:
+      APOLLO_TASK: cli-config-publish
+      APOLLO_SEED: "427860176"
+    networks: [frontend, backend]
+    cap_drop: [ALL]
+networks:
+  frontend: {}
+  backend:
+    internal: true

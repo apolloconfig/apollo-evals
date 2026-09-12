@@ -1,9 +1,11 @@
-node_modules/
-dist/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
 .cache/
 .runtime/
-versions.lock.json
-results/*
-!results/.gitkeep
+jobs-output/
+results/
 *.log
 .DS_Store

@@ -1,0 +1,13 @@
+job_name: apollo-oracle
+jobs_dir: jobs-output
+n_attempts: 1
+n_concurrent_trials: 1
+retry:
+  max_retries: 0
+environment:
+  type: docker
+  delete: true
+agents:
+  - name: oracle
+datasets:
+  - path: tasks
