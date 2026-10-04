@@ -70,6 +70,8 @@ const lifecycle: ScenarioLifecycle<State> = {
   async verify(context) {
     const pom = await readFile(path.join(context.workspace, 'pom.xml'), 'utf8');
     const source = await readFile(path.join(context.workspace, 'src/main/java/scenario/ClusterPrecedence.java'), 'utf8');
+    const selectsCluster = source.includes('apollo.cluster')
+      || /\b(?:ApolloClientSystemConsts\s*\.\s*APOLLO_CLUSTER|ConfigConsts\s*\.\s*APOLLO_CLUSTER_KEY)\b/.test(source);
     const result = await runJava(context);
     const preferred = parseJsonLine(result.preferredStdout);
     const missing = parseJsonLine(result.missingStdout);
@@ -78,7 +80,7 @@ const lifecycle: ScenarioLifecycle<State> = {
     const distractor = await context.session.control.config(context.state.public.distractorApp);
     return verdict([
       check('locked apollo-client dependency', 'interaction', pom.includes('<artifactId>apollo-client</artifactId>') && pom.includes(`<version>${context.state.public.apolloJavaVersion}</version>`)),
-      check('uses cluster-aware Apollo Java Client read', 'interaction', /ConfigService\s*\.\s*getConfig\s*\(/.test(source) && source.includes('apollo.cluster') && !/(HttpClient|HttpURLConnection|java\.net\.http)/.test(source)),
+      check('uses cluster-aware Apollo Java Client read', 'interaction', /ConfigService\s*\.\s*getConfig\s*\(/.test(source) && selectsCluster && !/(HttpClient|HttpURLConnection|java\.net\.http)/.test(source)),
       check('program compiles offline', 'outcome', result.compileOk, result.stderr.slice(-500)),
       check('preferred cluster overrides default', 'outcome', JSON.stringify(preferred) === JSON.stringify(expectedPreferred), result.preferredStdout.trim()),
       check('missing cluster falls back to default', 'outcome', JSON.stringify(missing) === JSON.stringify(expectedMissing), result.missingStdout.trim()),
