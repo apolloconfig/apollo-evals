@@ -57,7 +57,7 @@ Java scenarios start a separate Maven/JDK runner container on the attempt networ
 - an authenticated host Codex or Claude Code CLI supporting the selected adapter's required non-interactive options, only for evaluation/replay execution; no exact CLI version is pinned
 - no local Apollo source checkout, JDK, Maven, Rust, or Cargo
 
-Default product coordinates live in `apollo-evals.config.ts`: Apollo `nobodyiam/apollo-quick-start:3.0.0-SNAPSHOT`, Apollo Java Client `2.5.0` from Maven Central, and Apollo CLI `0.1.0` from GitHub Releases. Maintainers configure versions and remote coordinates; the CLI asset SHA-256 is resolved from the GitHub Release API.
+Default product coordinates live in `apollo-evals.config.ts`: Apollo `nobodyiam/apollo-quick-start:3.0.0`, Apollo Java Client `2.5.0` from Maven Central, and Apollo CLI `0.1.1` from GitHub Releases. Maintainers configure versions and remote coordinates; the CLI asset SHA-256 is resolved from the GitHub Release API.
 
 `pnpm prepare` uses a local Apollo image when available, ensures the Java runner image exists, downloads the CLI release archive, and warms a project-local `.cache/m2` inside the Java runner image. The generated `versions.lock.json` records resolved product versions, remote URLs, SHA-256 values, image IDs/RepoDigests, and platform details. Later commands reject artifact damage or local configuration drift after preparation.
 

@@ -57,7 +57,7 @@ Java 场景会额外启动一个独立的 Maven/JDK runner 容器，并通过本
 - 宿主机上已认证、且支持所选 adapter 非交互参数的 Codex 或 Claude Code CLI（只在执行 evaluation/replay 时需要）；不固定 CLI 的精确版本
 - 不需要本地 Apollo 源码仓库、JDK、Maven 或 Rust/Cargo
 
-当前默认版本集中配置在 `apollo-evals.config.ts`：Apollo `nobodyiam/apollo-quick-start:3.0.0-SNAPSHOT`、Maven Central 的 Apollo Java Client `2.5.0`，以及 GitHub Release 的 Apollo CLI `0.1.0`。人工配置只维护版本和远程坐标；CLI release asset 的 SHA-256 从 GitHub Release API 自动读取。
+当前默认版本集中配置在 `apollo-evals.config.ts`：Apollo `nobodyiam/apollo-quick-start:3.0.0`、Maven Central 的 Apollo Java Client `2.5.0`，以及 GitHub Release 的 Apollo CLI `0.1.1`。人工配置只维护版本和远程坐标；CLI release asset 的 SHA-256 从 GitHub Release API 自动读取。
 
 `pnpm prepare` 会使用本地已有的 Apollo 镜像（Docker Hub 发布后也可自动 pull），确保 Java runner 镜像可用，下载 CLI release archive，再在 Java runner 镜像内从 Maven Central 预热项目专用的 `.cache/m2`。最终生成的 `versions.lock.json` 记录实际获取的产品版本、远程 URL、SHA-256、镜像 ID/RepoDigest 和平台信息。后续命令会拒绝准备后发生的制品损坏或本地配置漂移。
 

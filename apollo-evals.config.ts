@@ -8,10 +8,10 @@ export const WORKSPACE_ROOT = process.env.APOLLO_EVALS_WORKSPACE_ROOT
   : path.join(os.homedir(), '.cache', 'apollo-evals', 'workspaces');
 
 export const APOLLO_CONTAINER_PORTS = { portal: 8070, configService: 8080, adminService: 8090 } as const;
-const APOLLO_VERSION = '3.0.0-SNAPSHOT';
+const APOLLO_VERSION = '3.0.0';
 const APOLLO_IMAGE_REPOSITORY = 'nobodyiam/apollo-quick-start';
 const APOLLO_JAVA_VERSION = '2.5.0';
-const APOLLO_CLI_VERSION = '0.1.0';
+const APOLLO_CLI_VERSION = '0.1.1';
 
 export const ARTIFACT_CONFIG = {
   apollo: {
